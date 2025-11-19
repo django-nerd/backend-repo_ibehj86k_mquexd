@@ -11,8 +11,9 @@ Model name is converted to lowercase for the collection name:
 - BlogPost -> "blogs" collection
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, Dict, Any
+from datetime import datetime
 
 # Example schemas (replace with your own):
 
@@ -38,11 +39,40 @@ class Product(BaseModel):
     category: str = Field(..., description="Product category")
     in_stock: bool = Field(True, description="Whether product is in stock")
 
-# Add your own schemas here:
-# --------------------------------------------------
+# Ascendia app schemas
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class ContactMessage(BaseModel):
+    """
+    Contact messages from the landing page
+    Collection name: "contactmessage"
+    """
+    name: str = Field(..., min_length=2, max_length=120)
+    email: EmailStr
+    message: str = Field(..., min_length=10, max_length=5000)
+    source: Optional[str] = Field(None, description="Where the message came from (page/section)")
+
+class TrackEvent(BaseModel):
+    """
+    Analytics events from the landing page
+    Collection name: "trackevent"
+    """
+    event: str = Field(..., description="Event name, e.g., page_view, cta_click")
+    path: Optional[str] = Field(None, description="Page path")
+    meta: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+    timestamp: Optional[datetime] = None
+
+class CheckoutRequest(BaseModel):
+    """
+    Request to create a Stripe Checkout Session
+    Not persisted; used for validation
+    """
+    price_id: Optional[str] = Field(None, description="Stripe Price ID if using recurring or predefined prices")
+    name: Optional[str] = Field(None, description="Name of the course/product if using ad-hoc price")
+    description: Optional[str] = None
+    amount: Optional[int] = Field(None, ge=50, description="Amount in cents when not using price_id")
+    currency: str = Field("usd", description="Currency code")
+    quantity: int = Field(1, ge=1)
+    success_url: Optional[str] = None
+    cancel_url: Optional[str] = None
